@@ -1,31 +1,31 @@
 function []=demodulate()
 close all;
 clc;
-%% ²ÎÊı
-Code = 2;
+%% å‚æ•°
+Code = 1;
 code = Code;
 SF = 3;
 number_bins = 2^SF; 
-%%ĞÅºÅµÄ²ÎÊıÉèÖÃ
+%%ä¿¡å·çš„å‚æ•°è®¾ç½®
 T=10e-6; %pulse duration10us
 B=50e6; %chirp frequency modulation bandwidth 30MHz
 K=B/T;%chirp slope
 Fs=2*B;Ts=1/Fs;%sampling frequency and sample spacing
 N=int32(T/Ts);
-f0 = 0*10e6; %·¢ÉäĞÅºÅÊ±µÄË²Ê±ÆµÂÊ£¬Ò²¾ÍÊÇĞÅºÅÓĞĞ§Çø¼ä·¢ÉäĞÅºÅµÄÖĞĞÄÆµÂÊ
+f0 = 0*10e6; %å‘å°„ä¿¡å·æ—¶çš„ç¬æ—¶é¢‘ç‡ï¼Œä¹Ÿå°±æ˜¯ä¿¡å·æœ‰æ•ˆåŒºé—´å‘å°„ä¿¡å·çš„ä¸­å¿ƒé¢‘ç‡
 t=linspace(0,T,N);
 n=0:N-1;
 
-A0 = 10e-3;%·¢ÉäĞÅºÅµÄÕñ·ù
-Phi0 = pi/2; %·¢ÉäĞÅºÅµÄËæ»ú³õÏà
-%% ²úÉúÏßĞÔµ÷ÆµĞÅºÅ
+A0 = 10e-3;%å‘å°„ä¿¡å·çš„æŒ¯å¹…
+Phi0 = pi/2; %å‘å°„ä¿¡å·çš„éšæœºåˆç›¸
+%% äº§ç”Ÿçº¿æ€§è°ƒé¢‘ä¿¡å·
 f_0=code*B/number_bins;
 k=0;
 St1 = zeros(1,N);
 for i=1:1:N
     if f0+f_0+K*t(i) < f0+B 
         k=k+1;
-        St1(i)=exp(1j*(2*pi*(f0+f_0)*t(i)+pi*K*t(i)^2)); %ÏßĞÔµ÷ÆµĞÅºÅ¸´Êı±í´ïÊ½
+        St1(i)=exp(1j*(2*pi*(f0+f_0)*t(i)+pi*K*t(i)^2)); %çº¿æ€§è°ƒé¢‘ä¿¡å·å¤æ•°è¡¨è¾¾å¼
     else
         St1(i)=exp(1j*(2*pi*(f0)*t(i-k)+pi*K*t(i-k)^2));
     end
@@ -33,54 +33,58 @@ end
            
 St1_1=exp(1j*(2*pi*(f0+B)*t-pi*K*t.^2)); %downchirp 
 
-%% Ìí¼ÓÔëÉù
+%% æ·»åŠ å™ªå£°
 Noise = 0*(wgn(1,N,1)+1j*wgn(1,N,1));
 St1_0 = St1;
 St1 = (St1+Noise);
 St1_2 = [St1,Noise];
-St1_2 = [Noise,St1_2]; %´´½¨Ò»¶Îº¬ÓĞupchirpµÄÑù±¾
+St1_2 = [Noise,St1_2]; %åˆ›å»ºä¸€æ®µå«æœ‰upchirpçš„æ ·æœ¬
 
 % figure
 % t1=linspace(0,T,3*N);
 % plot(t1*1e6,real(St1_2));
 
 
-%% ÒıÈëÕæÊµÊı¾İ
-    xx_1=read_data('data/0313/tag_0313');
-    cpdata = xx_1(3.556e5:3.76e5-1);
-    cpdata_0 = cpdata(710:1639+50);
-    cpdata_0 = cpdata_0(1:500);
+%% å¼•å…¥çœŸå®æ•°æ®
+
+    filename='data/test.dat';
+    fi_1 = fopen(filename,'rb');
+    xx_1=read_complex_binary(filename,1e6);
+    cpdata = xx_1(3.6e5:3.8e5-1);
+    cpdata_0 = cpdata(1:5000);
+    cpdata_0 = cpdata_0(2000-100:4000-101);
     plot(imag(cpdata_0))
     
-    filename='data/0312/downchirp.dat';
-    fi_1 = fopen(filename,'rb');
-    x_inter_1 = fread(fi_1, 'float32');
-    xx_1=0.1*read_complex_binary(filename,1e6);
+    
+    
+    filename1 = 'data/downchirp_imag.dat';
+    filename2 = 'data/downchirp_real.dat';
+    I = load(filename1,'%f');
+    Q = load(filename2,'%f');
+    cpdata_1 = complex(Q,I);
+    cpdata_1 = resample(cpdata_1,2000,200);
     figure;
-    cpdata1 = xx_1(3.556e5:3.576e5-1);
-    cpdata_1 = cpdata1(800:900);
-    cpdata_1 = resample(cpdata_1,500,101);
-    cpdata_1 = cpdata_1(1:500);
+
     plot(real(cpdata_1))
     
-     St1 = cpdata_0';
-     St1_1 = cpdata_1';
-     St1 = St1.*St1_1;
-     N = 500;
-     St1_2 = cpdata(700:3000)';
+    St1 = cpdata_0';
+    St1_1 = cpdata_1';
+%    St1 = St1.*St1_1;
+    N = 2000;
+    St1_2 = cpdata(700:3000)';
     
     
     
-%% ½âµ÷
+%% è§£è°ƒ
 % [M,index] = get_shift_fft(St1,St1_1,N,number_bins);
 % index1 = max_frequncy_gradient_idx(St1,N,number_bins);
-% disp(['ÕæÊµÎª:']);
+% disp(['çœŸå®ä¸º:']);
 % disp(code)
-% disp(['µÚÒ»ÖÖ½âµ÷Îª:']);
+% disp(['ç¬¬ä¸€ç§è§£è°ƒä¸º:']);
 % disp(index);
-% disp(['µÚ¶şÖÖ½âµ÷Îª:']);
+% disp(['ç¬¬äºŒç§è§£è°ƒä¸º:']);
 % disp(index1);
- St1 = St1.*St1_1;
+ %St1 = St1.*St1_1;
  %upchirp_ifeq = instantaneous_frequency(St1_0,N);
  %[correlation,index_chirp] = detect_upchirp(St1_2,upchirp_ifeq,N);
  %[correlation1,index_chirp1] = detect_upchirp1(St1_2,upchirp_ifeq,N);
@@ -88,43 +92,44 @@ St1_2 = [Noise,St1_2]; %´´½¨Ò»¶Îº¬ÓĞupchirpµÄÑù±¾
  
 
 
-%% »­Í¼
+%% ç”»å›¾
 t=linspace(0,T,N);
 
 figure
 subplot(411)
 plot(t*1e6,real(St1));
-xlabel('Time£¨us£©');
+xlabel('Timeï¼ˆusï¼‰');
 ylabel('Amplitude(Watts)')
-title('upchirpĞÅºÅµÄÊµ²¿');
+title('upchirp*downchirp');
 grid on;
 axis tight;
  
 subplot(412)
 plot(t*1e6,real(St1_1));
-xlabel('Time£¨us£©');
+xlabel('Timeï¼ˆusï¼‰');
 ylabel('Amplitude(Watts)')
-title('downchirpĞÅºÅµÄÊµ²¿');
+title('downchirpä¿¡å·çš„å®éƒ¨');
 grid on;
 axis tight;
- 
+
+St1 = abs(St1.*St1_1);
 subplot(413)
 freq=linspace(-Fs/2,Fs/2,N);
-plot(freq*1e-6,fftshift(abs(fft(St1)))); %ÏÈ¶ÔSt×ö¸µÀïÒ¶±ä»»µÃµ½ÆµÆ×£¬ÔÚÈ¡·ù¶ÈÖµ£¬È»ºó½«ÆäÒÆ¶¯µ½ÆµÆ×ÖĞĞÄ
-xlabel('Frequency£¨MHz£©');
+plot(freq*1e-6,abs(fft(St1))); %å…ˆå¯¹Ståšå‚…é‡Œå¶å˜æ¢å¾—åˆ°é¢‘è°±ï¼Œåœ¨å–å¹…åº¦å€¼ï¼Œç„¶åå°†å…¶ç§»åŠ¨åˆ°é¢‘è°±ä¸­å¿ƒ
+xlabel('Frequencyï¼ˆMHzï¼‰');
 ylabel('Amplitude(Watts)')
-title('ÏßĞÔµ÷ÆµĞÅºÅµÄÆµÆ×');
+title('çº¿æ€§è°ƒé¢‘ä¿¡å·çš„é¢‘è°±');
 grid on;
 axis tight;
 
 x=St1;
-y=fft(x,N);    %¶ÔĞÅºÅ½øĞĞ¿ìËÙFourier±ä»»
-mag=abs(y);     %ÇóµÃFourier±ä»»ºóµÄÕñ·ù
-f=n*Fs/N;    %ÆµÂÊĞòÁĞ
+y=fft(x,N);    %å¯¹ä¿¡å·è¿›è¡Œå¿«é€ŸFourierå˜æ¢
+mag=abs(y);     %æ±‚å¾—Fourierå˜æ¢åçš„æŒ¯å¹…
+f=n*Fs/N;    %é¢‘ç‡åºåˆ—
 mag_1=mag(1:N/2)+mag(N/2+1:N);
 subplot(414)
-plot(mag_1); %»æ³öNyquistÆµÂÊÖ®Ç°ËæÆµÂÊ±ä»¯µÄÕñ·ù
-xlabel('Frequency£¨MHz£©');
+plot(mag_1); %ç»˜å‡ºNyquisté¢‘ç‡ä¹‹å‰éšé¢‘ç‡å˜åŒ–çš„æŒ¯å¹…
+xlabel('Frequencyï¼ˆMHzï¼‰');
 ylabel('Amplitude(Watts)');
 title('Samples');
 grid on;
@@ -151,7 +156,7 @@ function power = my_frft(data)
     [a b c]=find(Pp3==power);
 
     i=1;
-    while pa(b)==1              %µ±p=1 ½×Îª1µÄÊ±ºò½µµÍ²½½øÖµ
+    while pa(b)==1              %å½“p=1 é˜¶ä¸º1çš„æ—¶å€™é™ä½æ­¥è¿›å€¼
         pa=1-1/(10^i):0.1/10^i:1+1/(10^i);
         u=1:1:length(xx);
         Pp3=zeros(length(u),length(pa));
@@ -175,7 +180,7 @@ function power = my_frft(data)
     
 
 end
-%% µÃµ½»·¾³ÖĞµÄFRFT·åÖµ
+%% å¾—åˆ°ç¯å¢ƒä¸­çš„FRFTå³°å€¼
 function power = huanjing(filename)
     xx_1=read_data(filename);
     figure(7)
@@ -186,7 +191,7 @@ function power = huanjing(filename)
     plot(abs(data))
     power=my_frft(data);
 end
-%% ²¨ĞÎÆ½»¬Ò»Ğ©
+%% æ³¢å½¢å¹³æ»‘ä¸€äº›
 function data = my_smooth(cpdata,thr)
     m=median(abs(cpdata));
     for i=1:1:length(cpdata)
@@ -197,7 +202,7 @@ function data = my_smooth(cpdata,thr)
     end
     data=cpdata;
 end
-%% µÃµ½Ë²Ê±ÆµÂÊ
+%% å¾—åˆ°ç¬æ—¶é¢‘ç‡
 function ifreq=instantaneous_frequency(samples,window)
     if window < 2
         disp('WARNING : samples size < 2 !');
@@ -216,7 +221,7 @@ function ifreq=instantaneous_frequency(samples,window)
     end
     ifreq(window) = ifreq(window-1);
 end
-%% µÃµ½Ë²Ê±ÏàÎ»
+%% å¾—åˆ°ç¬æ—¶ç›¸ä½
 function iphase=instantaneous_phase(samples,window)
     iphase(1) =  angle(samples(0));
     for i = 2:1:window
@@ -229,7 +234,7 @@ function iphase=instantaneous_phase(samples,window)
         end
     end
 end
-%% µÚÒ»ÖÖ½âµ÷·½Ê½£¬Ö±½ÓÇóÆµÂÊ×î´ó´¦
+%% ç¬¬ä¸€ç§è§£è°ƒæ–¹å¼ï¼Œç›´æ¥æ±‚é¢‘ç‡æœ€å¤§å¤„
 function bin_idx = max_frequncy_gradient_idx(samples,samples_per_symbol,number_of_bins)
     samples_ifreq = instantaneous_frequency(samples,samples_per_symbol);
     decim_factor = samples_per_symbol / number_of_bins;
@@ -255,7 +260,7 @@ function bin_idx = max_frequncy_gradient_idx(samples,samples_per_symbol,number_o
    
     %bin_idx = (number_of_bins - max_index);
 end
-%% µÚ¶şÖÖ½âµ÷·½Ê½£¬upchirp*downchirpºó×öFFT£¬ÇóbinÓò
+%% ç¬¬äºŒç§è§£è°ƒæ–¹å¼ï¼Œupchirp*downchirpååšFFTï¼Œæ±‚binåŸŸ
 function [M,bin_idx] = get_shift_fft(samples,downchirp,samples_per_symbol,number_of_bins)
     mult_hf = zeros(1,samples_per_symbol);
     for i=1:1:samples_per_symbol
@@ -276,7 +281,7 @@ function [M,bin_idx] = get_shift_fft(samples,downchirp,samples_per_symbol,number
     M = max(mag1);
     bin_idx = I-1;
 end
-%% upchirp ³ËÉÏdownchirp ×öfft
+%% upchirp ä¹˜ä¸Šdownchirp åšfft
 function [M,outlier] = mult_fft(samples,downchirp,window)
     mult_hf = zeros(1,window);
     for i=1:1:window
@@ -289,7 +294,7 @@ function [M,outlier] = mult_fft(samples,downchirp,window)
     avg = mean(mag1);
     outlier = M/avg;
 end
-%% Ê¹ÓÃµã»ı¼ì²âÊÇ·ñÓĞupchirp
+%% ä½¿ç”¨ç‚¹ç§¯æ£€æµ‹æ˜¯å¦æœ‰upchirp
 function [max_correlation,index] = detect_upchirp(samples,upchirp_ifreq,window)
     samples_ifreq = instantaneous_frequency(samples,window*2);
     max_correlation = 0;
@@ -304,7 +309,7 @@ function [max_correlation,index] = detect_upchirp(samples,upchirp_ifreq,window)
         end
     end
 end
-%% »¬¶¯´°¿Ú¼ì²âchirp£¨±ê×¼²î£©
+%% æ»‘åŠ¨çª—å£æ£€æµ‹chirpï¼ˆæ ‡å‡†å·®ï¼‰
 function [max_correlation,index] = detect_upchirp1(samples1,upchirp_ifreq,window)
     samples_ifreq = instantaneous_frequency(samples1,window*2);
     max_correlation = 0;
@@ -317,7 +322,7 @@ function [max_correlation,index] = detect_upchirp1(samples1,upchirp_ifreq,window
         end
     end
 end
-%% ¼ì²âupchirp ³ËÉÏdownchirp ×öfftÕÒ¼¯ÖĞÇé¿ö
+%% æ£€æµ‹upchirp ä¹˜ä¸Šdownchirp åšfftæ‰¾é›†ä¸­æƒ…å†µ
 function [max_correlation,index] = detect_upchirp2(samples1,ideal_chirp,window)
     samples = samples1(1:window*2);
     max_correlation = 0;
@@ -330,7 +335,7 @@ function [max_correlation,index] = detect_upchirp2(samples1,ideal_chirp,window)
         end
     end
 end
-%% Ê¹ÓÃ±ê×¼²îÇóÏàÊ¶¶È
+%% ä½¿ç”¨æ ‡å‡†å·®æ±‚ç›¸è¯†åº¦
 function result = cross_correlate_ifreq(samples_ifreq,ideal_chirp,to_idx)
     result = 0;
     average = mean(samples_ifreq(1:to_idx));
